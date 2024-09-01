@@ -23,7 +23,7 @@ class Scales:
     MAJOR           = 2, 2, 1, 2, 2, 2, 1
     GYPSY           = 1, 3, 1, 2, 1, 3, 1
     ENIGMATIC       = 1, 3, 2, 2, 2, 1, 1
-    PERSIAN         = 1, 3, 1, 2, 1, 3, 1
+    PERSIAN         = 1, 3, 1, 1, 2, 1, 3
     NATURALMINOR    = 2, 1, 2, 2, 1, 2, 2
     MELODICMINOR    = 2, 1, 2, 2, 2, 2, 1
     HUNGARIANMINOR  = 2, 1, 3, 1, 1, 3, 1
