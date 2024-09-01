@@ -43,19 +43,15 @@ class Scales:
         nsteps.rotate(-mode)
         steps = (0, *nsteps)
         
-        # gather scale
-        i, scale = 0, []
+        # gather scale and proper octave
+        i, oct, c, scale = 0, octave, notes.index('C'), []
         for s in steps:
             i += s
-            scale.append(notes[i%12])
+            note = notes[i%12]
+            oct += all((oct==octave, i>=c, i>0))
+            scale.append((note, oct))
             
-        # compile with proper octave 
-        out, o, c = [], octave, notes.index('C')
-        for i,n in enumerate(scale):
-            o += all((o==octave, notes.index(n)>=c, i>0))
-            out.append((n, o))
-            
-        return tuple(out)
+        return tuple(scale)
             
 
 class RingGame:
