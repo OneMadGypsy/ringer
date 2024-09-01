@@ -59,8 +59,8 @@ class RingGame:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.playing = False
-                pygame.quit()
                 pygame.mixer.quit()
+                pygame.quit()
                 sys.exit()    
             elif event.type == pygame.KEYDOWN:
                 if tone := self.keymap.get(event.key, None):
