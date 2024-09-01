@@ -1,8 +1,61 @@
 ```python3
-import pygame, sys, time, json
+import pygame, sys, time
 import numpy as np
-from functools import partial
+from functools   import partial
+from enum        import IntEnum
+from collections import deque
 
+
+class Modes(IntEnum):
+    Ionian     = 0
+    Dorian     = 1
+    Phrygian   = 2
+    Lydian     = 3
+    Mixolydian = 4
+    Aolian     = 5
+    Locrian    = 6
+
+    
+class Scales:
+    NOTES = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#']
+    
+    # scale formulas
+    MAJOR           = 2, 2, 1, 2, 2, 2, 1
+    GYPSY           = 2, 1, 3, 1, 1, 2, 1
+    ENIGMATIC       = 1, 3, 2, 2, 2, 2, 1
+    PERSIAN         = 1, 3, 1, 2, 1, 3, 1
+    NATURALMINOR    = 2, 1, 2, 2, 1, 2, 2
+    MELODICMINOR    = 2, 1, 2, 2, 2, 2, 1
+    HUNGARIANMINOR  = 2, 1, 3, 1, 2, 1, 3
+    NEOPOLITANMINOR = 1, 2, 2, 2, 1, 2, 2
+
+    @staticmethod
+    def scale(key:str, steps:tuple|list, mode:int, octave:int) -> tuple:
+        # find start note
+        start = Scales.NOTES.index(key)
+        
+        # rotate to proper start note
+        notes = deque(Scales.NOTES)
+        notes.rotate(-(start + sum(steps[:mode])))
+        
+        # rotate steps and prime for start note
+        nsteps = deque(steps)
+        nsteps.rotate(-mode)
+        steps = (0, *nsteps)
+        
+        i, out = 0, []
+        for s in steps:
+            i += s
+            out.append(notes[i%12])
+            
+        # find c for octave change 
+        c = out.index('C')
+        
+        # adjust if first note
+        c = c or len(out)-1
+        
+        return tuple((n, octave+(i>=c)) for i,n in enumerate(out))
+            
 
 class RingGame:
     BGCOLOR    = 0x000000
@@ -45,8 +98,7 @@ class RingGame:
        }
        
        data = {}
-       
-       for (key, note, octave) in args:
+       for (key, (note, octave)) in args:
           if (v := freqs.get(note, None)) is None:
               raise ValueError('key does not exist')
               
@@ -62,17 +114,15 @@ class RingGame:
         self.clock  = pygame.time.Clock()
         self.screen = pygame.display.set_mode((1200, 800))
         
-        # G scale
+        # G Major Phrygian scale
+        scale  = Scales.scale('G', Scales.MAJOR, Modes.Phrygian, 2)
+        
+        # keys to correspond to each scale note
+        keys   = (pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_f,
+                  pygame.K_g, pygame.K_h, pygame.K_j, pygame.K_k,)
+        
         # the length of this keymap will determine how many circles are drawn
-        self.keymap = RingGame.make_keymap((pygame.K_a, 'G' , 2),
-                                           (pygame.K_s, 'A' , 2),
-                                           (pygame.K_d, 'B' , 2),
-                                           (pygame.K_f, 'C' , 3),
-                                           (pygame.K_g, 'D' , 3),
-                                           (pygame.K_h, 'E' , 3),
-                                           (pygame.K_j, 'F#', 3),
-                                           (pygame.K_k, 'G' , 3),
-                                           )
+        self.keymap = RingGame.make_keymap(*zip(keys, scale))
         
         # makes the call to `draw.circle` a little shorter
         self.circle = partial(pygame.draw.circle, self.screen)
@@ -104,8 +154,9 @@ class RingGame:
                         self.pressed.append(event.key) 
                         
             elif event.type == pygame.KEYUP:
-                # key is no longer pressed, remove it 
-                self.pressed.remove(event.key)
+                if event.key in self.pressed:
+                    # key is no longer pressed, remove it 
+                    self.pressed.remove(event.key)
     
     def update_screen(self):
         self.screen.fill(RingGame.BGCOLOR)
