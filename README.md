@@ -17,7 +17,7 @@ class Modes(IntEnum):
 
     
 class Scales:
-    NOTES = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#']
+    NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
     
     # scale formulas
     MAJOR           = 2, 2, 1, 2, 2, 2, 1
@@ -43,18 +43,19 @@ class Scales:
         nsteps.rotate(-mode)
         steps = (0, *nsteps)
         
-        i, out = 0, []
+        # gather scale
+        i, scale = 0, []
         for s in steps:
             i += s
-            out.append(notes[i%12])
+            scale.append(notes[i%12])
             
-        # find c for octave change 
-        c = out.index('C')
-        
-        # adjust if first note
-        c = c or len(out)-1
-        
-        return tuple((n, octave+(i>=c)) for i,n in enumerate(out))
+        # compile with proper octave 
+        out, o, c = [], octave, notes.index('C')
+        for i,n in enumerate(scale):
+            o += all((o==octave, notes.index(n)>=c, i>0))
+            out.append((n, o))
+            
+        return tuple(out)
             
 
 class RingGame:
