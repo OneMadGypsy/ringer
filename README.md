@@ -41,12 +41,12 @@ class RingGame:
        data = {}
        
        for (key, note, octave) in args:
-           if (v := freqs.get(note, (0,0))) == (0,0):
-               raise ValueError('key does not exist')
+          if (v := freqs.get(note, None)) is None:
+              raise ValueError('key does not exist')
+              
+          data[key] = (v[0] * 2 ** octave) or v[0], v[1]
                
-           data[key] = (v[0] * 2 ** octave) or v[0], v[1]
-               
-       return data  
+       return data   
         
     def __init__(self):
         pygame.init()
