@@ -10,19 +10,25 @@ class RingGame:
     SAMPLERATE = 44100
     VOLUME     = .5
     DURATION   = .5
+    FADE_MS    = 20
     
     @staticmethod
     def generate_note(frequency:float, duration:float, volume:float=1.0):
         t     = np.linspace(0, duration, int(RingGame.SAMPLERATE * duration), False)
+        
+        # create tone array
         tone  = np.sin(frequency * np.pi * 2 * t) 
         tone *= 32767 / np.max(np.abs(tone))
         tone  = tone.astype(np.int16)
+        
+        # create, customize and play sound
         sound = pygame.mixer.Sound(tone)
         sound.set_volume(volume)
-        sound.play(fade_ms=10)
+        sound.play(fade_ms=RingGame.FADE_MS) #fade reduces pops at the end of the sound
         
     @staticmethod
     def make_keymap(*args) -> dict:
+       # we can derive all octaves from this base
        freqs = {
            "C" : (16.35160,0xFf0000),
            "C#": (17.32391,0x00FF00),
@@ -57,6 +63,7 @@ class RingGame:
         self.screen = pygame.display.set_mode((1200, 800))
         
         # G scale
+        # the length of this keymap will determine how many circles are drawn
         self.keymap = RingGame.make_keymap((pygame.K_a, 'G' , 2),
                                            (pygame.K_s, 'A' , 2),
                                            (pygame.K_d, 'B' , 2),
@@ -64,12 +71,14 @@ class RingGame:
                                            (pygame.K_g, 'D' , 3),
                                            (pygame.K_h, 'E' , 3),
                                            (pygame.K_j, 'F#', 3),
-                                           (pygame.K_k, 'G' , 3))
+                                           (pygame.K_k, 'G' , 3),
+                                           )
         
+        # makes the call to `draw.circle` a little shorter
         self.circle = partial(pygame.draw.circle, self.screen)
         
-        self.pressed = []
-        self.playing = True
+        self.pressed = []   # for tracking keypresses
+        self.playing = True # game loop condition
         
     def run(self):
         while self.playing:
@@ -83,13 +92,19 @@ class RingGame:
                 self.playing = False
                 pygame.mixer.quit()
                 pygame.quit()
-                sys.exit()    
+                sys.exit()   
+                
             elif event.type == pygame.KEYDOWN:
+                # find tone and generate it
                 if tone := self.keymap.get(event.key, (0,0,0))[0]:
                     RingGame.generate_note(tone, RingGame.DURATION, RingGame.VOLUME)
+                    
+                    # keep track of pressed keys
                     if event.key not in self.pressed:
-                        self.pressed.append(event.key)   
+                        self.pressed.append(event.key) 
+                        
             elif event.type == pygame.KEYUP:
+                # key is no longer pressed, remove it 
                 self.pressed.remove(event.key)
     
     def update_screen(self):
@@ -98,10 +113,14 @@ class RingGame:
         pygame.display.flip()
 
     def make_rings(self):
+        # ring count and sizes are dynamically determined by the length of `keymap`
         w,h = self.screen.get_width()/(len(self.keymap)+1), self.screen.get_height()/2
         for i,(k,(_,c)) in enumerate(self.keymap.items(), 1):
+            
+            # draw a highlight ring around circles that correspond to pressed keys
             if k in self.pressed:
                 self.circle(color=RingGame.HIGHLIGHT, center=(w*i, h), radius=w/2.1)
+            
             self.circle(color=c, center=(w*i, h), radius=w/2.2)
        
         
