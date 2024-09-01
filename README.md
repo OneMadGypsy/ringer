@@ -5,8 +5,8 @@ from functools import partial
 
 
 class RingGame:
-    COLORS     = (255, 0, 0), (0, 0, 255), (255, 255, 0), (0, 255, 0), (255, 126, 19), (148, 0, 211)
-    BGCOLOR    = (0, 0, 0)
+    COLORS     = 0xFF0000, 0x0000FF, 0xFFFF00, 0x00FF00, 0xFF7F00, 0x7F00FF, 0x00FF7F, 0xFF007F
+    BGCOLOR    = 0x000000
     SAMPLERATE = 44100
     VOLUME     = .5
     DURATION   = .5
@@ -29,8 +29,8 @@ class RingGame:
         self.clock  = pygame.time.Clock()
         self.screen = pygame.display.set_mode((1200, 800))
         
-        self.ring_center = self.screen.get_width()/7, self.screen.get_height()/2
-        self.circle      = partial(pygame.draw.circle, self.screen, radius=80)
+        self.ring_center = (w,_) = self.screen.get_width()/(len(RingGame.COLORS)+1), self.screen.get_height()/2
+        self.circle      = partial(pygame.draw.circle, self.screen, radius=w/2.2)
         
         #load tones
         self.tones = json.load((file := open('tones.json', 'r')))
