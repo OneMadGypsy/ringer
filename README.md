@@ -56,7 +56,7 @@ class RingGame:
         self.clock  = pygame.time.Clock()
         self.screen = pygame.display.set_mode((1200, 800))
         
-        
+        # G scale
         self.keymap = RingGame.make_keymap((pygame.K_a, 'G' , 2),
                                            (pygame.K_s, 'A' , 2),
                                            (pygame.K_d, 'B' , 2),
