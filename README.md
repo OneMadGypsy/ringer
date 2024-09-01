@@ -6,6 +6,7 @@ from functools import partial
 
 class RingGame:
     BGCOLOR    = 0x000000
+    HIGHLIGHT  = 0xFFFFFF
     SAMPLERATE = 44100
     VOLUME     = .5
     DURATION   = .5
@@ -18,7 +19,34 @@ class RingGame:
         tone  = tone.astype(np.int16)
         sound = pygame.mixer.Sound(tone)
         sound.set_volume(volume)
-        sound.play()
+        sound.play(fade_ms=10)
+        
+    @staticmethod
+    def make_keymap(*args) -> dict:
+       freqs = {
+           "C" : (16.35160,0xFf0000),
+           "C#": (17.32391,0x00FF00),
+           "D" : (18.35405,0x0000FF),
+           "D#": (19.44544,0xFFFF00),
+           "E" : (20.60172,0x00FFFF),
+           "F" : (21.82676,0x7F0000),
+           "F#": (23.12465,0x007F00),
+           "G" : (24.49971,0x00007F),
+           "G#": (25.95654,0xFF7F00),
+           "A" : (27.50000,0x00FF7F),
+           "A#": (29.13524,0x7FFF7F),
+           "B" : (30.86771,0xFF7FFF),
+       }
+       
+       data = {}
+       
+       for (key, note, octave) in args:
+           if (v := freqs.get(note, (0,0))) == (0,0):
+               raise ValueError('key does not exist')
+               
+           data[key] = (v[0] * 2 ** octave) or v[0], v[1]
+               
+       return data  
         
     def __init__(self):
         pygame.init()
@@ -28,23 +56,17 @@ class RingGame:
         self.clock  = pygame.time.Clock()
         self.screen = pygame.display.set_mode((1200, 800))
         
-        #load tones
-        self.tones = json.load((file := open('tones.json', 'r')))
-        file.close()
         
-        self.keymap = { # G scale
-            pygame.K_a : (self.tones['G2'] , 0xFF0000, 0x7F0000 ),
-            pygame.K_s : (self.tones['A2'] , 0x0000FF, 0x00007F ),
-            pygame.K_d : (self.tones['B2'] , 0xFFFF00, 0x7F7F00 ),
-            pygame.K_f : (self.tones['C3'] , 0x00FF00, 0x007F00 ),
-            pygame.K_g : (self.tones['D3'] , 0xFF7F00, 0x7F3F00 ),
-            pygame.K_h : (self.tones['E3'] , 0x7F00FF, 0x3F007F ),
-            pygame.K_j : (self.tones['F#3'], 0x00FF7F, 0x007F3F ),
-            pygame.K_k : (self.tones['G3'] , 0xFF007F, 0x7F003F ),
-        }
-
-        self.ring_center = (w,_) = self.screen.get_width()/(len(self.keymap)+1), self.screen.get_height()/2
-        self.circle      = partial(pygame.draw.circle, self.screen, radius=w/2.2)
+        self.keymap = RingGame.make_keymap((pygame.K_a, 'G' , 2),
+                                           (pygame.K_s, 'A' , 2),
+                                           (pygame.K_d, 'B' , 2),
+                                           (pygame.K_f, 'C' , 3),
+                                           (pygame.K_g, 'D' , 3),
+                                           (pygame.K_h, 'E' , 3),
+                                           (pygame.K_j, 'F#', 3),
+                                           (pygame.K_k, 'G' , 3))
+        
+        self.circle = partial(pygame.draw.circle, self.screen)
         
         self.pressed = []
         self.playing = True
@@ -76,12 +98,13 @@ class RingGame:
         pygame.display.flip()
 
     def make_rings(self):
-        w,h = self.ring_center
-        for i,(k,(_,c1,c2)) in enumerate(self.keymap.items(), 1):
-            self.circle(color=((c1,c2)[k in self.pressed]), center=(w*i, h))
+        w,h = self.screen.get_width()/(len(self.keymap)+1), self.screen.get_height()/2
+        for i,(k,(_,c)) in enumerate(self.keymap.items(), 1):
+            if k in self.pressed:
+                self.circle(color=RingGame.HIGHLIGHT, center=(w*i, h), radius=w/2.1)
+            self.circle(color=c, center=(w*i, h), radius=w/2.2)
        
         
 if __name__ == "__main__":
     RingGame().run()
-    
 ```
