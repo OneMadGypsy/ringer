@@ -59,20 +59,56 @@ class RingGame:
     HIGHLIGHT  = 0xFFFFFF
     SAMPLERATE = 44100
     VOLUME     = .5
-    DURATION   = .5
+    DURATION   = 1
     FADE_MS    = 20
     
-    @staticmethod
-    def generate_note(frequency:float, duration:float, volume:float=1.0):
-        t     = np.linspace(0, duration, int(RingGame.SAMPLERATE * duration), False)
+    def generate_piano_note(frequency:float, duration:float, volume:float=1.0):
+        # Calculate the number of samples
+        num_samples = int(RingGame.SAMPLERATE * duration)
         
-        # create tone array
-        tone  = np.sin(frequency * np.pi * 2 * t) 
-        tone *= 32767 / np.max(np.abs(tone))
-        tone  = tone.astype(np.int16)
+        # Generate an array of sample points
+        t = np.linspace(0, duration, num_samples, endpoint=False)
+        
+        # Generate a complex waveform (sum of harmonics with more realistic amplitudes)
+        harmonics = [1.0, 0.5, 0.3, 0.2, 0.1]  # Amplitudes of the fundamental and overtones
+        wave_points = np.sum([
+            h * np.sin(2 * np.pi * frequency * (i + 1) * t)
+            for i, h in enumerate(harmonics)
+        ], axis=0)
+        wave_points *= 32767 / np.max(np.abs(wave_points))
+        
+        # ADSR envelope parameters
+        attack_time = 0.05  # seconds
+        decay_time = 0.1    # seconds
+        sustain_level = 0.7
+        release_time = 0.1  # seconds
+        
+        # Create envelope arrays
+        attack_samples = int(attack_time * RingGame.SAMPLERATE)
+        decay_samples = int(decay_time * RingGame.SAMPLERATE)
+        sustain_samples = int(num_samples - attack_samples - decay_samples - int(release_time * RingGame.SAMPLERATE))
+        release_samples = int(release_time * RingGame.SAMPLERATE)
+        
+        attack = np.linspace(0, 1, attack_samples)
+        decay = np.linspace(1, sustain_level, decay_samples)
+        sustain = np.ones(sustain_samples) * sustain_level
+        release = np.linspace(sustain_level, 0, release_samples)
+        
+        # Concatenate the envelope
+        envelope = np.concatenate((attack, decay, sustain, release))
+        
+        # Ensure envelope length matches wave points length
+        if len(envelope) < len(wave_points):
+            envelope = np.pad(envelope, (0, len(wave_points) - len(envelope)), 'constant', constant_values=0)
+        elif len(envelope) > len(wave_points):
+            envelope = envelope[:len(wave_points)]
+        
+        # Apply the envelope to the wave points and scale by volume
+        wave_points *= envelope
+        wave_points  = wave_points.astype(np.int16)
         
         # create, customize and play sound
-        sound = pygame.mixer.Sound(tone)
+        sound = pygame.mixer.Sound(wave_points)
         sound.set_volume(volume)
         sound.play(fade_ms=RingGame.FADE_MS) #fade reduces pops at the end of the sound
         
@@ -144,7 +180,7 @@ class RingGame:
             elif event.type == pygame.KEYDOWN:
                 # find tone and generate it
                 if tone := self.keymap.get(event.key, (0,0,0))[0]:
-                    RingGame.generate_note(tone, RingGame.DURATION, RingGame.VOLUME)
+                    RingGame.generate_piano_note(tone, RingGame.DURATION, RingGame.VOLUME)
                     
                     # keep track of pressed keys
                     if event.key not in self.pressed:
@@ -174,4 +210,5 @@ class RingGame:
         
 if __name__ == "__main__":
     RingGame().run()
+    
 ```
