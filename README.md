@@ -272,6 +272,7 @@ class RingerApp:
         
         # synth effects properties
         # if any of these properties are 0, the effect that property corresponds to will be ignored
+        # all effects are 0 by default, you have to explicitly set them like this
         self.effects = dict(
             reverb       = 0.5, 
             echo_delay   = 0.5, 
