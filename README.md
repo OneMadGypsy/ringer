@@ -232,7 +232,9 @@ class RingerSynth:
               
           #precompute all waves - otherwise it's too slow
           freq = (v[0] * 2 ** octave) or v[0]
-          data[key] = RingerSynth.synth(freq, RingerSynth.DURATION, RingerSynth.VOLUME, **kwargs), v[1]
+          kwargs['duration'] = kwargs.get('duration', RingerSynth.DURATION)
+          kwargs['volume']   = kwargs.get('volume'  , RingerSynth.VOLUME)
+          data[key] = RingerSynth.synth(freq, **kwargs), v[1]
                
        return data  
        
@@ -256,10 +258,22 @@ class RingerApp:
         keys   = (pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_f,
                   pygame.K_g, pygame.K_h, pygame.K_j, pygame.K_k,)
         
+        # synth properties, this is the same as the defaults
+        # the only reason this is here is to illustrate how to change them
+        self.synth = dict(
+            duration  = 1,
+            volume    = 0.5,
+            harmonics = (1.0, 1.5, 0.3, 0.2, 0.1),
+            attack    = 0.05,
+            decay     = 0.1,
+            release   = 0.1,
+            sustain   = 0.7,
+        )
+        
         # synth effects properties
         self.effects = dict(
             reverb       = 0.5, 
-            echo_delay   = 0.3, 
+            echo_delay   = 0.5, 
             echo_decay   = 0.5,
             chorus_delay = 0.01,
             chorus_depth = 0.5,
@@ -268,7 +282,7 @@ class RingerApp:
         )
         
         # the length of this keymap will determine how many circles are drawn
-        self.keymap = RingerSynth.make_keymap(*zip(keys, scale), **self.effects)
+        self.keymap = RingerSynth.make_keymap(*zip(keys, scale), **self.synth, **self.effects)
         
         # makes the call to `draw.circle` a little shorter
         self.circle = partial(pygame.draw.circle, self.screen)
