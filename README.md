@@ -4,7 +4,8 @@ import numpy as np
 from functools   import partial
 from enum        import IntEnum
 from collections import deque
-from scipy.fft import fft, ifft
+from scipy.fft   import fft, ifft
+
 
 class Modes(IntEnum):
     Ionian     = 0
@@ -55,11 +56,9 @@ class Scales:
             
 
 class RingerSynth:
-    BGCOLOR    = 0x000000
-    HIGHLIGHT  = 0xFFFFFF
     SAMPLERATE = 44100
     VOLUME     = .5
-    DURATION   = .5
+    DURATION   = 1
     
     # synth: default "piano"
     HARMONICS = 1.0, 1.5, 0.3, 0.2, 0.1
@@ -78,7 +77,7 @@ class RingerSynth:
     CHORUSMIX   = 0.0
     
     @staticmethod
-    def __apply_reverb(signal, reverb_time:float):
+    def __apply_reverb(signal:np.ndarray, reverb_time:float) -> np.ndarray:
         # generate a simple impulse response for reverb
         impulse_response_length = int(RingerSynth.SAMPLERATE * reverb_time)
         impulse_response = np.linspace(1, 0, impulse_response_length)
@@ -92,12 +91,12 @@ class RingerSynth:
         impulse_response_fft = fft(impulse_response, n=fft_length)
         
         reverb_fft = signal_fft * impulse_response_fft
-        reverb_signal = np.real(ifft(reverb_fft))
+        output_signal = np.real(ifft(reverb_fft))
         
-        return reverb_signal[:signal_length]
+        return output_signal[:signal_length]
         
     @staticmethod
-    def __apply_echo(signal, delay_time, decay_factor):
+    def __apply_echo(signal:np.ndarray, delay_time:float, decay_factor:float) -> np.ndarray:
         # calculate the number of samples
         delay_samples = int(RingerSynth.SAMPLERATE * delay_time)
         
@@ -117,7 +116,7 @@ class RingerSynth:
         return output_signal
         
     @staticmethod
-    def __apply_chorus(signal, delay_time:float, depth:float, rate:float, mix:float):
+    def __apply_chorus(signal:np.ndarray, delay_time:float, depth:float, rate:float, mix:float) -> np.ndarray:
         # calculate the number of samples
         max_delay_samples = int(RingerSynth.SAMPLERATE * delay_time)
         
@@ -139,7 +138,7 @@ class RingerSynth:
         return output_signal
         
     @staticmethod     
-    def synth(frequency:float, duration:float, volume:float=1.0, **kwargs):
+    def synth(frequency:float, duration:float, volume:float=1.0, **kwargs) -> np.ndarray:
         # calculate the number of samples
         num_samples = int(RingerSynth.SAMPLERATE * duration)
         
@@ -152,8 +151,6 @@ class RingerSynth:
             h * np.sin(2 * np.pi * frequency * (i + 1) * t)
             for i, h in enumerate(harmonics)
         ], axis=0)
-        
-        # normalize
         
         # ADSR envelope parameters
         attack_time   = kwargs.get("attack"  , RingerSynth.ATTACK)
@@ -240,7 +237,10 @@ class RingerSynth:
        return data  
        
        
-class RingerApp:        
+class RingerApp:      
+    BGCOLOR    = 0x000000
+    HIGHLIGHT  = 0xFFFFFF 
+    
     def __init__(self):
         pygame.init()
         pygame.mixer.init()
@@ -276,13 +276,13 @@ class RingerApp:
         self.pressed = []   # for tracking keypresses
         self.playing = True # game loop condition
         
-    def run(self):
+    def run(self) -> None:
         while self.playing:
             self.check_events()
             self.update_screen()
             self.clock.tick(60)
         
-    def check_events(self):
+    def check_events(self) -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.playing = False
@@ -304,19 +304,19 @@ class RingerApp:
                     # key is no longer pressed, remove it 
                     self.pressed.remove(event.key)
     
-    def update_screen(self):
-        self.screen.fill(RingerSynth.BGCOLOR)
+    def update_screen(self) -> None:
+        self.screen.fill(RingerApp.BGCOLOR)
         self.make_rings()
         pygame.display.flip()
 
-    def make_rings(self):
+    def make_rings(self) -> None:
         # ring count and sizes are dynamically determined by the length of `keymap`
         w,h = self.screen.get_width()/(len(self.keymap)+1), self.screen.get_height()/2
         for i,(k,(_,c)) in enumerate(self.keymap.items(), 1):
             
             # draw a highlight ring around circles that correspond to pressed keys
             if k in self.pressed:
-                self.circle(color=RingerSynth.HIGHLIGHT, center=(w*i, h), radius=w/2.1)
+                self.circle(color=RingerApp.HIGHLIGHT, center=(w*i, h), radius=w/2.1)
             
             self.circle(color=c, center=(w*i, h), radius=w/2.2)
        
