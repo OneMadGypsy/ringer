@@ -54,7 +54,7 @@ class Scales:
         return tuple(scale)
             
 
-class Ringer:
+class RingerSynth:
     BGCOLOR    = 0x000000
     HIGHLIGHT  = 0xFFFFFF
     SAMPLERATE = 44100
@@ -80,7 +80,7 @@ class Ringer:
     @staticmethod
     def __apply_reverb(signal, reverb_time:float):
         # generate a simple impulse response for reverb
-        impulse_response_length = int(Ringer.SAMPLERATE * reverb_time)
+        impulse_response_length = int(RingerSynth.SAMPLERATE * reverb_time)
         impulse_response = np.linspace(1, 0, impulse_response_length)
         
         signal_length = len(signal)
@@ -99,7 +99,7 @@ class Ringer:
     @staticmethod
     def __apply_echo(signal, delay_time, decay_factor):
         # calculate the number of samples
-        delay_samples = int(Ringer.SAMPLERATE * delay_time)
+        delay_samples = int(RingerSynth.SAMPLERATE * delay_time)
         
         # generate an array of sample points
         output_signal = np.zeros(len(signal) + delay_samples)
@@ -119,13 +119,13 @@ class Ringer:
     @staticmethod
     def __apply_chorus(signal, delay_time:float, depth:float, rate:float, mix:float):
         # calculate the number of samples
-        max_delay_samples = int(Ringer.SAMPLERATE * delay_time)
+        max_delay_samples = int(RingerSynth.SAMPLERATE * delay_time)
         
         # create an output array
         output_signal = np.zeros(len(signal) + max_delay_samples)
         
         # generate modulation LFO for delay
-        t = np.arange(len(signal)) / Ringer.SAMPLERATE
+        t = np.arange(len(signal)) / RingerSynth.SAMPLERATE
         lfo = depth * max_delay_samples * (np.sin(2 * np.pi * rate * t) / 2 + 0.5)
         
         # apply the chorus effect
@@ -141,13 +141,13 @@ class Ringer:
     @staticmethod     
     def synth(frequency:float, duration:float, volume:float=1.0, **kwargs):
         # calculate the number of samples
-        num_samples = int(Ringer.SAMPLERATE * duration)
+        num_samples = int(RingerSynth.SAMPLERATE * duration)
         
         # generate an array of sample points
         t = np.linspace(0, duration, num_samples, endpoint=False)
         
         # generate a complex waveform with harmonics
-        harmonics = kwargs.get("harmonics" , Ringer.HARMONICS)
+        harmonics = kwargs.get("harmonics" , RingerSynth.HARMONICS)
         wave_points = np.sum([
             h * np.sin(2 * np.pi * frequency * (i + 1) * t)
             for i, h in enumerate(harmonics)
@@ -156,24 +156,24 @@ class Ringer:
         # normalize
         
         # ADSR envelope parameters
-        attack_time   = kwargs.get("attack"  , Ringer.ATTACK)
-        decay_time    = kwargs.get("decay"   , Ringer.DECAY)
-        release_time  = kwargs.get("release" , Ringer.RELEASE)
-        sustain_level = kwargs.get("sustain" , Ringer.SUSTAIN)
+        attack_time   = kwargs.get("attack"  , RingerSynth.ATTACK)
+        decay_time    = kwargs.get("decay"   , RingerSynth.DECAY)
+        release_time  = kwargs.get("release" , RingerSynth.RELEASE)
+        sustain_level = kwargs.get("sustain" , RingerSynth.SUSTAIN)
         
         # effect parameters
-        reverb_time   = kwargs.get("reverb"       , Ringer.REVERB)
-        echo_delay    = kwargs.get("echo_delay"   , Ringer.ECHODELAY)
-        echo_decay    = kwargs.get("echo_decay"   , Ringer.ECHODECAY)
-        chorus_delay  = kwargs.get("chorus_delay" , Ringer.CHORUSDELAY)
-        chorus_depth  = kwargs.get("chorus_depth" , Ringer.CHORUSDEPTH)
-        chorus_rate   = kwargs.get("chorus_rate"  , Ringer.CHORUSRATE)
-        chorus_mix    = kwargs.get("chorus_mix"   , Ringer.CHORUSMIX)
+        reverb_time   = kwargs.get("reverb"       , RingerSynth.REVERB)
+        echo_delay    = kwargs.get("echo_delay"   , RingerSynth.ECHODELAY)
+        echo_decay    = kwargs.get("echo_decay"   , RingerSynth.ECHODECAY)
+        chorus_delay  = kwargs.get("chorus_delay" , RingerSynth.CHORUSDELAY)
+        chorus_depth  = kwargs.get("chorus_depth" , RingerSynth.CHORUSDEPTH)
+        chorus_rate   = kwargs.get("chorus_rate"  , RingerSynth.CHORUSRATE)
+        chorus_mix    = kwargs.get("chorus_mix"   , RingerSynth.CHORUSMIX)
         
         # create envelope arrays
-        attack_samples  = int(attack_time  * Ringer.SAMPLERATE)
-        decay_samples   = int(decay_time   * Ringer.SAMPLERATE)
-        release_samples = int(release_time * Ringer.SAMPLERATE) 
+        attack_samples  = int(attack_time  * RingerSynth.SAMPLERATE)
+        decay_samples   = int(decay_time   * RingerSynth.SAMPLERATE)
+        release_samples = int(release_time * RingerSynth.SAMPLERATE) 
         sustain_samples = int(num_samples - attack_samples - decay_samples - release_samples)
         
         attack  = np.linspace(0, 1, attack_samples)
@@ -196,13 +196,13 @@ class Ringer:
            
         # add effects
         if reverb_time > 0:
-            wave_points = Ringer.__apply_reverb(wave_points, reverb_time)
+            wave_points = RingerSynth.__apply_reverb(wave_points, reverb_time)
             
         if echo_delay * echo_decay:
-            wave_points = Ringer.__apply_echo(wave_points, echo_delay, echo_decay)
+            wave_points = RingerSynth.__apply_echo(wave_points, echo_delay, echo_decay)
             
         if chorus_delay * chorus_depth * chorus_rate * chorus_mix:
-            wave_points = Ringer.__apply_chorus(wave_points, chorus_delay, chorus_depth, chorus_rate, chorus_mix)
+            wave_points = RingerSynth.__apply_chorus(wave_points, chorus_delay, chorus_depth, chorus_rate, chorus_mix)
             
         # normalize and format to 16-bit PCM format 
         wave_points /= np.max(np.abs(wave_points))
@@ -235,14 +235,16 @@ class Ringer:
               
           #precompute all waves - otherwise it's too slow
           freq = (v[0] * 2 ** octave) or v[0]
-          data[key] = Ringer.synth(freq, Ringer.DURATION, Ringer.VOLUME, **kwargs), v[1]
+          data[key] = RingerSynth.synth(freq, RingerSynth.DURATION, RingerSynth.VOLUME, **kwargs), v[1]
                
-       return data   
-        
+       return data  
+       
+       
+class RingerApp:        
     def __init__(self):
         pygame.init()
         pygame.mixer.init()
-        pygame.display.set_caption('Ringer')
+        pygame.display.set_caption('RingerSynth')
         
         self.clock  = pygame.time.Clock()
         self.screen = pygame.display.set_mode((1200, 800))
@@ -266,7 +268,7 @@ class Ringer:
         )
         
         # the length of this keymap will determine how many circles are drawn
-        self.keymap = Ringer.make_keymap(*zip(keys, scale), **self.effects)
+        self.keymap = RingerSynth.make_keymap(*zip(keys, scale), **self.effects)
         
         # makes the call to `draw.circle` a little shorter
         self.circle = partial(pygame.draw.circle, self.screen)
@@ -303,7 +305,7 @@ class Ringer:
                     self.pressed.remove(event.key)
     
     def update_screen(self):
-        self.screen.fill(Ringer.BGCOLOR)
+        self.screen.fill(RingerSynth.BGCOLOR)
         self.make_rings()
         pygame.display.flip()
 
@@ -314,12 +316,11 @@ class Ringer:
             
             # draw a highlight ring around circles that correspond to pressed keys
             if k in self.pressed:
-                self.circle(color=Ringer.HIGHLIGHT, center=(w*i, h), radius=w/2.1)
+                self.circle(color=RingerSynth.HIGHLIGHT, center=(w*i, h), radius=w/2.1)
             
             self.circle(color=c, center=(w*i, h), radius=w/2.2)
        
         
 if __name__ == "__main__":
-    Ringer().run()
-
+    RingerApp().run()
 ```
