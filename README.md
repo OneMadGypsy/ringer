@@ -69,7 +69,7 @@ class RingGame:
         t = np.linspace(0, duration, num_samples, endpoint=False)
         
         # generate a complex waveform with harmonics
-        harmonics = [1.0, 0.5, 0.3, 0.2, 0.1]
+        harmonics = (1.0, 0.5, 0.3, 0.2, 0.1)
         wave_points = np.sum([
             h * np.sin(2 * np.pi * frequency * (i + 1) * t)
             for i, h in enumerate(harmonics)
